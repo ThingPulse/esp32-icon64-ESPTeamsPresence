@@ -4,6 +4,7 @@
  *   https://github.com/toblum/ESPTeamsPresence
  *
  * Copyright (C) 2020 Tobias Blum <make@tobiasblum.de>
+ * Copyright (C) 2023 ThingPulse Ltd. <info@thingpulse.com> for changes introduced by ThingPulse
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -24,15 +25,18 @@
 
 
 // Global settings
-// #define NUMLEDS 16							// Number of LEDs on the strip (if not set via build flags)
-// #define DATAPIN 26							// GPIO pin used to drive the LED strip (20 == GPIO/D13) (if not set via build flags)
+#define DEFAULT_AZURE_CLIENT_ID "3837bbf0-30fb-47ad-bce8-f460ba9880c3"
+#define NUMLEDS 64							// Number of LEDs on the strip (if not set via build flags)
+#define DATAPIN 32							// GPIO pin used to drive the LED strip (20 == GPIO/D13) (if not set via build flags)
 // #define DISABLECERTCHECK 1					// Uncomment to disable https certificate checks (if not set via build flags)
 // #define STATUS_PIN LED_BUILTIN				// User builtin LED for status (if not set via build flags)
-#define DEFAULT_POLLING_PRESENCE_INTERVAL "30"	// Default interval to poll for presence info (seconds)
+#define DEFAULT_POLLING_PRESENCE_INTERVAL "10"	// Default interval to poll for presence info (seconds)
 #define DEFAULT_ERROR_RETRY_INTERVAL 30			// Default interval to try again after errors
 #define TOKEN_REFRESH_TIMEOUT 60	 			// Number of seconds until expiration before token gets refreshed
 #define CONTEXT_FILE "/context.json"			// Filename of the context file
 #define VERSION "0.18.3"						// Version of the software
+
+#define BUTTON_PIN 39
 
 #define DBG_PRINT(x) Serial.print(x)
 #define DBG_PRINTLN(x) Serial.println(x)
@@ -101,10 +105,10 @@ char paramTenantValue[STRING_LEN];
 char paramPollIntervalValue[INTEGER_LEN];
 char paramNumLedsValue[INTEGER_LEN];
 IotWebConfSeparator separator = IotWebConfSeparator();
-IotWebConfParameter paramClientId = IotWebConfParameter("Client-ID (Generic ID: 3837bbf0-30fb-47ad-bce8-f460ba9880c3)", "clientId", paramClientIdValue, STRING_LEN, "text", "e.g. 3837bbf0-30fb-47ad-bce8-f460ba9880c3", "3837bbf0-30fb-47ad-bce8-f460ba9880c3");
+IotWebConfParameter paramClientId = IotWebConfParameter("Client-ID, use default", "clientId", paramClientIdValue, STRING_LEN, "text", nullptr, DEFAULT_AZURE_CLIENT_ID);
 IotWebConfParameter paramTenant = IotWebConfParameter("Tenant hostname / ID", "tenantId", paramTenantValue, STRING_LEN, "text", "e.g. contoso.onmicrosoft.com");
-IotWebConfParameter paramPollInterval = IotWebConfParameter("Presence polling interval (sec) (default: 30)", "pollInterval", paramPollIntervalValue, INTEGER_LEN, "number", "10..300", DEFAULT_POLLING_PRESENCE_INTERVAL, "min='10' max='300' step='5'");
-IotWebConfParameter paramNumLeds = IotWebConfParameter("Number of LEDs (default: 16)", "numLeds", paramNumLedsValue, INTEGER_LEN, "number", "1..500", "16", "min='1' max='500' step='1'");
+IotWebConfParameter paramPollInterval = IotWebConfParameter("Presence polling interval (sec)", "pollInterval", paramPollIntervalValue, INTEGER_LEN, "number", nullptr, DEFAULT_POLLING_PRESENCE_INTERVAL, "min='10' max='300' step='5'");
+IotWebConfParameter paramNumLeds = IotWebConfParameter(String("Number of LEDs (default: " + String(NUMLEDS) + ")").c_str(), "numLeds", paramNumLedsValue, INTEGER_LEN, "number", "1..500", String(NUMLEDS).c_str(), "min='1' max='500' step='1'");
 byte lastIotWebConfState;
 
 // HTTP client
@@ -115,7 +119,7 @@ WS2812FX ws2812fx = WS2812FX(NUMLEDS, DATAPIN, NEO_GRB + NEO_KHZ800);
 int numberLeds;
 
 // OTA update
-HTTPUpdateServer httpUpdater;
+// HTTPUpdateServer httpUpdater;	// we do not support OTA
 
 // Global variables
 String user_code = "";
@@ -269,38 +273,64 @@ void setAnimation(uint8_t segment, uint8_t mode = FX_MODE_STATIC, uint32_t color
 void setPresenceAnimation() {
 	// Activity: Available, Away, BeRightBack, Busy, DoNotDisturb, InACall, InAConferenceCall, Inactive, InAMeeting, Offline, OffWork, OutOfOffice, PresenceUnknown, Presenting, UrgentInterruptionsOnly
 
+	// if (activity.equals("Available")) {
+	// 	setAnimation(0, FX_MODE_STATIC, GREEN);
+	// }
+	// if (activity.equals("Away")) {
+	// 	setAnimation(0, FX_MODE_STATIC, YELLOW);
+	// }
+	// if (activity.equals("BeRightBack")) {
+	// 	setAnimation(0, FX_MODE_STATIC, ORANGE);
+	// }
+	// if (activity.equals("Busy")) {
+	// 	setAnimation(0, FX_MODE_STATIC, PURPLE);
+	// }
+	// if (activity.equals("DoNotDisturb") || activity.equals("UrgentInterruptionsOnly")) {
+	// 	setAnimation(0, FX_MODE_STATIC, PINK);
+	// }
+	// if (activity.equals("InACall")) {
+	// 	setAnimation(0, FX_MODE_BREATH, RED);
+	// }
+	// if (activity.equals("InAConferenceCall")) {
+	// 	setAnimation(0, FX_MODE_BREATH, RED, 9000);
+	// }
+	// if (activity.equals("Inactive")) {
+	// 	setAnimation(0, FX_MODE_BREATH, WHITE);
+	// }
+	// if (activity.equals("InAMeeting")) {
+	// 	setAnimation(0, FX_MODE_SCAN, RED);
+	// }	
+	// if (activity.equals("Offline") || activity.equals("OffWork") || activity.equals("OutOfOffice") || activity.equals("PresenceUnknown")) {
+	// 	setAnimation(0, FX_MODE_STATIC, BLACK);
+	// }
+	// if (activity.equals("Presenting")) {
+	// 	setAnimation(0, FX_MODE_COLOR_WIPE, RED);
+	// }
+
+
+	// We don't want those who look at the presence device having to remember a large number of color/animation combinations.
+	// Instead, we want to only display the same familiar but very basic traffic light that MS Teams uses.
+	// Green: 	Available, 
+	// Yellow: 	Away, BeRightBack, 
+	// Red: 	Busy, InACall, InAMeeting, Presenting, DoNotDisturb, InAConferenceCall, UrgentInterruptionsOnly
+	// Black: 	everything else i.e. Inactive, Offline, OffWork, OutOfOffice, PresenceUnknown 
+	
 	if (activity.equals("Available")) {
 		setAnimation(0, FX_MODE_STATIC, GREEN);
-	}
-	if (activity.equals("Away")) {
-		setAnimation(0, FX_MODE_STATIC, YELLOW);
-	}
-	if (activity.equals("BeRightBack")) {
-		setAnimation(0, FX_MODE_STATIC, ORANGE);
-	}
-	if (activity.equals("Busy")) {
-		setAnimation(0, FX_MODE_STATIC, PURPLE);
-	}
-	if (activity.equals("DoNotDisturb") || activity.equals("UrgentInterruptionsOnly")) {
-		setAnimation(0, FX_MODE_STATIC, PINK);
-	}
-	if (activity.equals("InACall")) {
-		setAnimation(0, FX_MODE_BREATH, RED);
-	}
-	if (activity.equals("InAConferenceCall")) {
-		setAnimation(0, FX_MODE_BREATH, RED, 9000);
-	}
-	if (activity.equals("Inactive")) {
-		setAnimation(0, FX_MODE_BREATH, WHITE);
-	}
-	if (activity.equals("InAMeeting")) {
-		setAnimation(0, FX_MODE_SCAN, RED);
-	}	
-	if (activity.equals("Offline") || activity.equals("OffWork") || activity.equals("OutOfOffice") || activity.equals("PresenceUnknown")) {
-		setAnimation(0, FX_MODE_STATIC, BLACK);
-	}
-	if (activity.equals("Presenting")) {
+	} else if (activity.equals("Away") || 
+			   activity.equals("BeRightBack")) {
+				// the MS Teams yellow/orange appears to be something like 0xFCAC12
+		setAnimation(0, FX_MODE_STATIC, (uint32_t)0xFCAC12);
+	} else if (activity.equals("Busy") || 
+	           activity.equals("InACall") || 
+			   activity.equals("InAMeeting") || 
+			   activity.equals("Presenting") ||
+			   activity.equals("DoNotDisturb") ||
+			   activity.equals("InAConferenceCall") ||
+			   activity.equals("UrgentInterruptionsOnly")) {
 		setAnimation(0, FX_MODE_COLOR_WIPE, RED);
+	} else {
+		setAnimation(0, FX_MODE_STATIC, BLACK);
 	}
 }
 
@@ -562,6 +592,9 @@ void setup()
 		DBG_PRINTLN(F("WARNING: Checking of HTTPS certificates disabled."));
 	#endif
 
+	// allow the button to act as reset, see loop()
+	pinMode(BUTTON_PIN, INPUT);
+
 	// WS2812FX
 	ws2812fx.init();
 	rmt_tx_int(RMT_CHANNEL_0, ws2812fx.getPin());
@@ -569,6 +602,11 @@ void setup()
 	setAnimation(0, FX_MODE_STATIC, WHITE);
 
 	// iotWebConf - Initializing the configuration.
+	// work around the unintuitive default value handling before iotWebConf 3.x (manually copy default values into buffers)
+	strncpy(paramClientIdValue, DEFAULT_AZURE_CLIENT_ID, STRING_LEN);
+	strncpy(paramPollIntervalValue, DEFAULT_POLLING_PRESENCE_INTERVAL, INTEGER_LEN);
+	strncpy(paramNumLedsValue, String(NUMLEDS).c_str(), INTEGER_LEN);
+	// END workaround
 	#ifdef LED_BUILTIN
 	iotWebConf.setStatusPin(LED_BUILTIN);
 	#endif
@@ -577,13 +615,15 @@ void setup()
 	iotWebConf.addParameter(&paramClientId);
 	iotWebConf.addParameter(&paramTenant);
 	iotWebConf.addParameter(&paramPollInterval);
-	iotWebConf.addParameter(&paramNumLeds);
+	// not needed as number of LEDs is given for the Icon64
+	// iotWebConf.addParameter(&paramNumLeds);
 	// iotWebConf.setFormValidator(&formValidator);
 	// iotWebConf.getApTimeoutParameter()->visible = true;
 	// iotWebConf.getApTimeoutParameter()->defaultValue = "10";
 	iotWebConf.setWifiConnectionCallback(&onWifiConnected);
 	iotWebConf.setConfigSavedCallback(&onConfigSaved);
-	iotWebConf.setupUpdateServer(&httpUpdater);
+	// We do not support OTA
+	// iotWebConf.setupUpdateServer(&httpUpdater);
 	iotWebConf.skipApStartup();
 	iotWebConf.init();
 
@@ -644,4 +684,9 @@ void loop()
 	iotWebConf.doLoop();
 
 	statemachine();
+
+	if (digitalRead(BUTTON_PIN) == LOW) {
+		DBG_PRINTLN("Restarting device");
+  		ESP.restart();
+	}
 }

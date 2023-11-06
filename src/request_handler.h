@@ -4,6 +4,7 @@
  *   https://github.com/toblum/ESPTeamsPresence
  *
  * Copyright (C) 2020 Tobias Blum <make@tobiasblum.de>
+ * Copyright (C) 2023 ThingPulse Ltd. <info@thingpulse.com> for changes introduced by ThingPulse
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -109,14 +110,15 @@ void handleRoot() {
 	if (iotWebConf.handleCaptivePortal()) { return; }
 
 	String s = "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
-	s += "<link href=\"https://fonts.googleapis.com/css?family=Press+Start+2P\" rel=\"stylesheet\">";
-	s += "<link href=\"https://unpkg.com/nes.css@2.3.0/css/nes.min.css\" rel=\"stylesheet\" />";
+	// s += "<link href=\"https://fonts.googleapis.com/css?family=Press+Start+2P\" rel=\"stylesheet\">";
+	// s += "<link href=\"https://unpkg.com/nes.css@2.3.0/css/nes.min.css\" rel=\"stylesheet\" />";
 	s += "<style type=\"text/css\">\n";
 	s += "  body {padding:3.5rem}\n";
 	s += "  .ml-s {margin-left:1.0rem}\n";
 	s += "  .mt-s {margin-top:1.0rem}\n";
 	s += "  .mt {margin-top:3.5rem}\n";
 	s += "  #dialog-devicelogin {max-width:800px}\n";
+	s += "  input[type=\"text\"]:disabled { border: 0; margin-left: 10px; font-weight: bolder; color: green;}\n";
 	s += "</style>\n";
 	s += "<script>\n";
 	s += "function closeDeviceLoginModal() {\n";
@@ -141,8 +143,8 @@ void handleRoot() {
 	s += "  });\n";
 	s += "}\n";
 	s += "</script>\n";
-	s += "<title>ESP32 teams presence</title></head>\n";
-	s += "<body><h2>ESP32 teams presence - v" + String(VERSION) + "</h2>";
+	s += "<title>ESP32 Microsoft Teams presence - ThingPulse fork</title></head>\n";
+	s += "<body><h2>ESP32 Microsoft Teams presence v" + String(VERSION) + " - ThingPulse fork</h2>";
 
 	s += "<section class=\"mt\"><div class=\"nes-balloon from-left\">";
 	if (strlen(paramTenantValue) == 0 || strlen(paramClientIdValue) == 0) {
@@ -170,10 +172,10 @@ void handleRoot() {
 	s += "Go to <a href=\"config\">configuration page</a> to change settings.";
 	s += "</div>";
 	s += "<section class=\"nes-container with-title\"><h3 class=\"title\">Current settings</h3>";
-	s += "<div class=\"nes-field mt-s\"><label for=\"name_field\">Client-ID</label><input type=\"text\" id=\"name_field\" class=\"nes-input\" disabled value=\"" + String(paramClientIdValue) +  "\"></div>";
-	s += "<div class=\"nes-field mt-s\"><label for=\"name_field\">Tenant hostname / ID</label><input type=\"text\" id=\"name_field\" class=\"nes-input\" disabled value=\"" + String(paramTenantValue) +  "\"></div>";
-	s += "<div class=\"nes-field mt-s\"><label for=\"name_field\">Polling interval (sec)</label><input type=\"text\" id=\"name_field\" class=\"nes-input\" disabled value=\"" + String(paramPollIntervalValue) +  "\"></div>";
-	s += "<div class=\"nes-field mt-s\"><label for=\"name_field\">Number of LEDs</label><input type=\"text\" id=\"name_field\" class=\"nes-input\" disabled value=\"" + String(paramNumLedsValue) +  "\"></div>";
+	s += "<div class=\"nes-field mt-s\"><label for=\"client_id_field\">Client-ID</label><input type=\"text\" id=\"client_id_field\" class=\"nes-input\" disabled size=\"" + String(STRING_LEN) + "\" value=\"" + String(paramClientIdValue) +  "\"></div>";
+	s += "<div class=\"nes-field mt-s\"><label for=\"tenant_field\">Tenant hostname / ID</label><input type=\"text\" id=\"tenant_field\" class=\"nes-input\" disabled size=\"" + String(STRING_LEN) + "\" value=\"" + String(paramTenantValue) +  "\"></div>";
+	s += "<div class=\"nes-field mt-s\"><label for=\"polling_field\">Polling interval (sec)</label><input type=\"text\" id=\"polling_field\" class=\"nes-input\" disabled value=\"" + String(paramPollIntervalValue) +  "\"></div>";
+	s += "<div class=\"nes-field mt-s\"><label for=\"leds_field\">Number of LEDs</label><input type=\"text\" id=\"leds_field\" class=\"nes-input\" disabled value=\"" + String(paramNumLedsValue) +  "\"></div>";
 	s += "</section>";
 
 	s += "<section class=\"nes-container with-title mt\"><h3 class=\"title\">Memory usage</h3>";
@@ -195,7 +197,7 @@ void handleRoot() {
 	s += "<div><button type=\"button\" class=\"nes-btn is-error\" onclick=\"document.getElementById('dialog-clearsettings').showModal();\">Clear all settings</button></div>";
 	s += "</section>";
 
-	s += "<div class=\"mt\"><i class=\"nes-icon github\"></i> Find the <a href=\"https://github.com/toblum/ESPTeamsPresence\" target=\"_blank\">ESPTeamsPresence</a> project on GitHub.</i></div>";
+	s += "<div class=\"mt\"><i class=\"nes-icon github\"></i> Find the ThingPulse <a href=\"https://github.com/ThingPulse/ESPTeamsPresence\" target=\"_blank\">ESPTeamsPresence</a> fork on GitHub.</i></div>";
 
 	s += "</body>\n</html>\n";
 
